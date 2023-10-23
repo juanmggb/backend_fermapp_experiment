@@ -14,7 +14,7 @@ db.sqlite3
 local_settings.py
 
 # Ignore media and static files
-media/
+# media/
 static/
 
 # Ignore virtual environment

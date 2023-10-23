@@ -1,58 +1,66 @@
-
-
-from .models import Experiment, ExperimentVariable, ExperimentVariableValue
-from experiment.serializers import ExperimentSerializer, ExperimentVariableSerializer, ExperimentVariableValueSerializer
-from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework import status
-
-class ExperimentViewSet(ModelViewSet):
-
-    queryset = Experiment.objects.all()
-    serializer_class = ExperimentSerializer 
+from experiment.models import Experiment, ExperimentVariable, ExperimentVariableValue
+from experiment.serializers import ExperimentSerializer
+from rest_framework.decorators import api_view
+from django.db import transaction
 
 
-class ExperimentVariableViewSet(ModelViewSet):
+@api_view(["GET", "POST"])
+@transaction.atomic  # Add this line to make the function transactional
+def experiment_list(request):
+    if request.method == "GET":
+        experiments = Experiment.objects.all().order_by("-id")
 
-    queryset = ExperimentVariable.objects.all()
-    serializer_class = ExperimentVariableSerializer
+        serializer = ExperimentSerializer(experiments, many=True)
+
+        return Response(serializer.data, status=200)
+
+    elif request.method == "POST":
+        data = request.data
+        experiment_details = data.get("experimentDetails")
+
+        # Throw an error if experimentDetails are not provided
+        if not experiment_details:
+            return Response({"error": "experimentDetails is required"}, status=400)
+
+        serializer = ExperimentSerializer(
+            data=experiment_details
+        )  # Pass data to serializer
+
+        if serializer.is_valid():
+            experiment = serializer.save()
+            variables = data.get("variables")
+
+            # Throw an error if variables are not provided
+            if not variables:
+                return Response({"error": "variables are required"}, status=400)
+
+            for variable in variables:
+                experiment_variable = ExperimentVariable.objects.create(
+                    experiment=experiment,
+                    variable_name=variable.get("variable_name"),
+                    variable_units=variable.get("variable_units"),
+                    detection_method=variable.get("detection_method"),
+                )
+
+                values = variable.get("values", [])
+
+                print("VALUES", values)
+
+                if len(values) == 0:
+                    return Response(
+                        {"error": "all variables required values"}, status=400
+                    )
+                for value in values:
+                    ExperimentVariableValue.objects.create(
+                        variable=experiment_variable,
+                        value=value,
+                    )
+
+            return Response(serializer.data, status=200)
+        else:
+            print(serializer.errors)
+            return Response(serializer.errors, status=400)
 
 
-class ExperimentVariableValueViewSet(ModelViewSet):
-
-    queryset = ExperimentVariableValue.objects.all()
-    serializer_class = ExperimentVariableValueSerializer 
-class CreateExperimentObjects(APIView):
-    def post(self, request):
-        experiment_data = request.data.get('experiment')
-        variables_data = request.data.get('variables')
-
-        experiment_serializer = ExperimentSerializer(data=experiment_data)
-        variable_serializer = ExperimentVariableSerializer(data=variables_data, many=True)
-
-        if experiment_serializer.is_valid() and variable_serializer.is_valid():
-            experiment = experiment_serializer.save()
-
-            variables = variable_serializer.save(experiment=experiment)
-            for variable, variable_data in zip(variables, variables_data):
-                values_data = variable_data.pop('values')
-
-                for value_data in values_data:
-                    value_data['variable'] = variable.id
-                    value_serializer = ExperimentVariableValueSerializer(data=value_data)
-
-                    if value_serializer.is_valid(raise_exception=True):
-                        value_serializer.save()
-
-            return Response(experiment_serializer.data, status=status.HTTP_201_CREATED)
-
-        return Response(
-            {
-                'errors': {
-                    'experiment': experiment_serializer.errors if experiment_serializer.errors else None,
-                    'variables': variable_serializer.errors if variable_serializer.errors else None,
-                }
-            },
-            status=status.HTTP_400_BAD_REQUEST
-        )
+# By adding the @transaction.atomic decorator above the create_experiment function, you're telling Django to treat all the database operations in this function as a single transaction. This means if any of the operations fail, all changes to the database within this function will be rolled back, leaving your database in a consistent state.

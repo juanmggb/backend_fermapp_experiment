@@ -1,31 +1,18 @@
 from django.contrib import admin
 from django.urls import path, include
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
-
-schema_view = get_schema_view(
-    openapi.Info(
-        title="Your Project API",
-        default_version='v1',
-        description="Description of your API",
-        terms_of_service="https://www.example.com/terms/",
-        contact=openapi.Contact(email="contact@example.com"),
-        license=openapi.License(name="MIT License"),
-    ),
-    public=True,
+from django.conf import settings
+from django.conf.urls.static import static
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
 )
 
-
-
-
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('experiment/', include('experiment.urls')),
-    path('analysis/', include('analysis.urls')),
-    path('element/', include('element.urls'))
-]
-
-
-urlpatterns += [
-    path('docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-]
+    path("admin/", admin.site.urls),
+    path("", include("users.urls")),
+    path("", include("experiment.urls")),
+    path("", include("element.urls")),
+    # login
+    path("login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("login/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
