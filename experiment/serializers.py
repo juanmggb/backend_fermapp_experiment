@@ -33,13 +33,23 @@ class ReducedExperimentVariableSerializer(serializers.ModelSerializer):
 
 
 class ExperimentSerializer(serializers.ModelSerializer):
-    variables = ReducedExperimentVariableSerializer(read_only=True, many=True)
-
-    # Always rememeber to use read_only with serializer fields that DON'T exist in the model
-    substrate = serializers.CharField(source="substrate.name", read_only=True)
-    microorganism = serializers.CharField(source="microorganism.name", read_only=True)
-    product = serializers.CharField(source="product.name", read_only=True)
+    variables = ReducedExperimentVariableSerializer(many=True, read_only=True)
+    # Note: It's important to use read_only fields for attributes that don't exist in the model
+    substrate_name = serializers.CharField(source="substrate.name", read_only=True)
+    microorganism_name = serializers.CharField(
+        source="microorganism.name", read_only=True
+    )
+    product_name = serializers.CharField(source="product.name", read_only=True)
 
     class Meta:
         model = Experiment
         fields = "__all__"
+        # write_only_fields is deprecated in DRF 3.x; use 'extra_kwargs' instead
+        # extra_kwargs = {
+        #     "substrate": {"write_only": True},
+        #     "product": {"write_only": True},
+        #     "microorganism": {"write_only": True},
+        #     "author": {"write_only": True},
+        #     "supervisor": {"write_only": True},
+        #     "laboratory": {"write_only": True},
+        # }
