@@ -64,6 +64,8 @@ def parameter_optimization(request):
         # add any other relevant information
     }
 
+    print("response_data", response_data)
+
     return Response(response_data, status=200)
 
 

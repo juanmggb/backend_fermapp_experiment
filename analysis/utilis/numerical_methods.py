@@ -11,6 +11,8 @@ def perform_simulation(model, y0, t_eval, params):
 
     # Solve the differential equations
 
+    # print("t_span", t_span)
+
     if model == "monod":
         mu, Yx, Yp, Ks = params
         sol = solve_ivp(monod_model, t_span, y0, args=(mu, Yx, Yp, Ks), t_eval=t_eval)
