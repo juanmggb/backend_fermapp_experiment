@@ -1,67 +1,76 @@
-from .models import Member, Laboratory
-from django.contrib.auth.models import User
+from .models import Laboratory
+from django.contrib.auth import get_user_model, authenticate
 
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
-class LoginSerializer(serializers.ModelSerializer):
-    memberId = serializers.CharField(source="member.id", read_only=True)
+class AuthTokenSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
 
-    class Meta:
-        model = User
-        fields = ("memberId", "username")
+        email = attrs.get("email")
+        password = attrs.get("password")
+
+        user = authenticate(
+            request=self.context.get("request"), username=email, password=password
+        )
+
+        data["name"] = user.name
+        data["bro"] = "hi"
+
+        return data
 
 
-# Only for validating username
-class ValidateUsernameSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ("username",)
-
-
-# Only for creating a member
+# We can use the same serializer for registrering users and updating users
 class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = "__all__"
 
+    """
+    Serializer for user data.
+    This class extends the ModelSerializer to handle user data serialization, focusing on fields like email, password, and name. The password field is set to write-only for security.
+    The create method is overriden to utilize the custom user model's create_user method
+    """
 
-class MemberSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(source="user.username", read_only=True)
-
-    class Meta:
-        model = Member
-        fields = "__all__"
-
-
-class DirectorSerializer(serializers.ModelSerializer):
-    first_name = serializers.CharField(source="user.first_name", read_only=True)
-    # username = serializers.CharField(source="user.username", read_only=True)
+    laboratory_name = serializers.CharField(
+        source="laboratory.laboratory_name", read_only=True
+    )
 
     class Meta:
-        model = Member
-        fields = ("id", "first_name")
+        model = get_user_model()
         # fields = "__all__"
+        fields = [
+            "id",
+            "email",
+            "password",
+            "name",
+            "role",
+            "image",
+            "is_staff",
+            "laboratory",
+            "laboratory_name",
+            "created_at",
+        ]
+        extra_kwargs = {
+            "password": {"write_only": True},
+        }
 
+    def create(self, validated_data):
+        return get_user_model().objects.create_user(**validated_data)
 
-class LaboratoryMemberSerializer(serializers.ModelSerializer):
-    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    def update(self, instance, validated_data):
+        password = validated_data.pop("password", None)
+        user = super().update(instance, validated_data)
 
-    class Meta:
-        model = Member
-        fields = ("first_name", "role")
+        # This is necessary to hash password
+        if password:
+            user.set_password(password)
+            user.save()
+        return user
 
 
 class LaboratorySerializer(serializers.ModelSerializer):
-    # director_name = serializers.CharField(
-    #     source="director.user.first_name",
-    #     read_only=True,
-    # )
-
-    members = LaboratoryMemberSerializer(many=True, read_only=True)
+    director_name = serializers.CharField(source="director.name")
 
     class Meta:
         model = Laboratory
-        # exclude = ("director",)
         fields = "__all__"
-        extra_kwargs = {"director": {"write_only": True}}

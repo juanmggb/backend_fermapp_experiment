@@ -4,7 +4,6 @@ from experiment.serializers import ExperimentSerializer
 from rest_framework.decorators import api_view
 from django.db import transaction
 from django.db.models import Q
-
 from .utilis.experiments import filter_by_date, filter_dict
 
 
@@ -43,8 +42,6 @@ def experiment_list(request):
 
         serializer = ExperimentSerializer(queryset, many=True)
 
-        print("RESPONSE", serializer.data)
-
         return Response(serializer.data, status=200)
 
     elif request.method == "POST":
@@ -54,7 +51,7 @@ def experiment_list(request):
 
         # Throw an error if experimentDetails are not provided
         if not experiment_details:
-            return Response({"error": "experiment details is required"}, status=400)
+            return Response({"error": "experiment details are required"}, status=400)
 
         serializer = ExperimentSerializer(
             data=experiment_details
@@ -78,11 +75,10 @@ def experiment_list(request):
 
                 values = variable.get("values", [])
 
-                print("VALUES", values)
 
                 if len(values) == 0:
                     return Response(
-                        {"error": "all variables required values"}, status=400
+                        {"error": "all variables require values"}, status=400
                     )
                 for value in values:
                     ExperimentVariableValue.objects.create(
@@ -91,9 +87,8 @@ def experiment_list(request):
                     )
 
             return Response(serializer.data, status=200)
-        else:
-            print(serializer.errors)
-            return Response(serializer.errors, status=400)
+
+        return Response(serializer.errors, status=400)
 
 
 # By adding the @transaction.atomic decorator above the create_experiment function, you're telling Django to treat all the database operations in this function as a single transaction. This means if any of the operations fail, all changes to the database within this function will be rolled back, leaving your database in a consistent state.
@@ -110,11 +105,9 @@ def experiment_details(request, id):
 
     if request.method == "GET":
         serializer = ExperimentSerializer(experiment)
-
         return Response(serializer.data, status=200)
 
     elif request.method == "PUT":
-        print("DATA:::::::::::::::", request.data)
         serializer = ExperimentSerializer(data=request.data, instance=experiment)
 
         if serializer.is_valid():

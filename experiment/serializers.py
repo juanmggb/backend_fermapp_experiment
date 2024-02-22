@@ -8,13 +8,13 @@ class ExperimentVariableValueSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+# class ExperimentVariableSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = ExperimentVariable
+#         fields = "__all__"
+
+
 class ExperimentVariableSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ExperimentVariable
-        fields = "__all__"
-
-
-class ReducedExperimentVariableSerializer(serializers.ModelSerializer):
     values_list = serializers.SerializerMethodField()
 
     class Meta:
@@ -33,13 +33,17 @@ class ReducedExperimentVariableSerializer(serializers.ModelSerializer):
 
 
 class ExperimentSerializer(serializers.ModelSerializer):
-    variables = ReducedExperimentVariableSerializer(many=True, read_only=True)
     # Note: It's important to use read_only fields for attributes that don't exist in the model
+    variables = ExperimentVariableSerializer(many=True, read_only=True)
     substrate_name = serializers.CharField(source="substrate.name", read_only=True)
     microorganism_name = serializers.CharField(
         source="microorganism.name", read_only=True
     )
     product_name = serializers.CharField(source="product.name", read_only=True)
+    author_name = serializers.CharField(source="author.name", read_only=True)
+    laboratory_name = serializers.CharField(
+        source="laboratory.laboratory_name", read_only=True
+    )
 
     class Meta:
         model = Experiment
