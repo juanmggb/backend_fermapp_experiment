@@ -24,7 +24,6 @@ class AuthTokenSerializer(TokenObtainPairSerializer):
 
 # We can use the same serializer for registrering users and updating users
 class UserSerializer(serializers.ModelSerializer):
-
     """
     Serializer for user data.
     This class extends the ModelSerializer to handle user data serialization, focusing on fields like email, password, and name. The password field is set to write-only for security.
@@ -69,7 +68,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class LaboratorySerializer(serializers.ModelSerializer):
-    director_name = serializers.CharField(source="director.name")
+    director_name = serializers.CharField(source="director.name", read_only=True)
 
     class Meta:
         model = Laboratory
